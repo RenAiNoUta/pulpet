@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no">
 <title>Pulpet – gruby kot</title>
 <style>
   html,body{margin:0;height:100%;background:#151826;color:#fff;font-family:system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -113,6 +113,12 @@ document.querySelectorAll('[data-k]').forEach(b=>{
   b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);
   b.addEventListener('pointercancel',off);b.addEventListener('pointerleave',off);
 });
+/* blokada powiększania na telefonie (szczypanie dwoma palcami, podwójne stuknięcie) */
+const noZoom=e=>{if(e.target!==fsBtn&&e.cancelable)e.preventDefault()};
+document.addEventListener('touchstart',noZoom,{passive:false});
+document.addEventListener('touchmove',noZoom,{passive:false});
+document.addEventListener('touchend',noZoom,{passive:false});
+['gesturestart','gesturechange','gestureend','dblclick'].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));
 function input(){return{
   left:!!(keys.ArrowLeft||keys.KeyA||touch.left),
   right:!!(keys.ArrowRight||keys.KeyD||touch.right),
@@ -162,7 +168,21 @@ let lang=(navigator.language||'').toLowerCase().startsWith('pl')?'pl':'en';
 function setLang(l){lang=l;document.documentElement.lang=l;document.title=STR[l].doc}
 setLang(lang);
 const S=k=>STR[lang][k];
-const LANG_BTN={pl:{x:W/2-200,y:H/2-20,w:180,h:64,label:'🇵🇱  Polski'},en:{x:W/2+20,y:H/2-20,w:180,h:64,label:'🇬🇧  English'}};
+const LANG_BTN={pl:{x:W/2-200,y:H/2-20,w:180,h:64,label:'Polski'},en:{x:W/2+20,y:H/2-20,w:180,h:64,label:'English'}};
+function drawFlag(k,x,y,w,h){
+  ctx.save();ctx.beginPath();ctx.roundRect(x,y,w,h,3);ctx.clip();
+  if(k==='pl'){ctx.fillStyle='#fff';ctx.fillRect(x,y,w,h/2);ctx.fillStyle='#dc143c';ctx.fillRect(x,y+h/2,w,h/2)}
+  else{
+    ctx.fillStyle='#012169';ctx.fillRect(x,y,w,h);
+    const line=(c,lw,a,b2,c2,d)=>{ctx.strokeStyle=c;ctx.lineWidth=lw;ctx.beginPath();ctx.moveTo(a,b2);ctx.lineTo(c2,d);ctx.stroke()};
+    line('#fff',h*0.28,x,y,x+w,y+h);line('#fff',h*0.28,x+w,y,x,y+h);
+    line('#c8102e',h*0.1,x,y,x+w,y+h);line('#c8102e',h*0.1,x+w,y,x,y+h);
+    ctx.fillStyle='#fff';ctx.fillRect(x+w/2-h*0.2,y,h*0.4,h);ctx.fillRect(x,y+h*0.3,w,h*0.4);
+    ctx.fillStyle='#c8102e';ctx.fillRect(x+w/2-h*0.12,y,h*0.24,h);ctx.fillRect(x,y+h*0.38,w,h*0.24);
+  }
+  ctx.restore();
+  ctx.strokeStyle='rgba(0,0,0,.35)';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(x,y,w,h,3);ctx.stroke();
+}
 
 /* ---------- stan gry ---------- */
 let state='lang',li=0,lvl,grid,P,enemies,fishes,parts=[],cam=0,lives=9,gotLevel=0,gotTotal=0,timer=0,t=0,startT=0,endT=0,spawn,cpOn=false;
@@ -469,8 +489,13 @@ function draw(){
       ctx.fillStyle=sel?'#ffcf4a':'rgba(255,255,255,.15)';
       ctx.beginPath();ctx.roundRect(b.x,b.y,b.w,b.h,14);ctx.fill();
       ctx.strokeStyle=sel?'#ffcf4a':'rgba(255,255,255,.5)';ctx.lineWidth=2;ctx.stroke();
-      ctx.fillStyle=sel?'#2a1a10':'#fff';ctx.font='bold 22px system-ui,sans-serif';
-      ctx.fillText(b.label,b.x+b.w/2,b.y+b.h/2+1);
+      ctx.font='bold 22px system-ui,sans-serif';
+      const fw=34,fh=22,gap=12,maxT=b.w-fw-gap-28;
+      const tw=Math.min(ctx.measureText(b.label).width,maxT),x0=b.x+(b.w-(fw+gap+tw))/2;
+      drawFlag(k,x0,b.y+(b.h-fh)/2,fw,fh);
+      ctx.fillStyle=sel?'#2a1a10':'#fff';ctx.textAlign='left';
+      ctx.fillText(b.label,x0+fw+gap,b.y+b.h/2+1,maxT);
+      ctx.textAlign='center';
     }
     ctx.font='17px system-ui,sans-serif';ctx.fillStyle='rgba(255,255,255,.75)';
     ctx.fillText('← →   ·   Spacja / Space / Enter',W/2,H/2+85);
