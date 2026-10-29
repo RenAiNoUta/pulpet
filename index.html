@@ -14,10 +14,14 @@
   #touch button.on{background:rgba(255,255,255,.4)}
   #touch .jump{width:90px;height:90px}
   @media (pointer:coarse){#touch{display:flex}}
+  #fs{position:fixed;top:10px;right:10px;z-index:10;width:44px;height:44px;border-radius:10px;border:2px solid rgba(255,255,255,.5);background:rgba(0,0,0,.35);color:#fff;cursor:pointer;display:none;align-items:center;justify-content:center;padding:0;touch-action:manipulation}
+  #fs:hover{background:rgba(0,0,0,.55)}
+  #fs svg{width:24px;height:24px;fill:none;stroke:#fff;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
 </style>
 </head>
 <body>
 <div id="wrap"><canvas id="c"></canvas></div>
+<button id="fs" type="button" aria-label="Pełny ekran / Fullscreen" title="Pełny ekran / Fullscreen (F)"></button>
 <div id="touch">
   <div class="pad"><button data-k="left">◀</button><button data-k="right">▶</button></div>
   <button data-k="jump" class="jump">▲</button>
@@ -56,6 +60,33 @@ const sfx={
   win:()=>{beep(500,1000,0.18,'triangle');setTimeout(()=>beep(700,1400,0.3,'triangle'),150)}
 };
 
+/* ---------- pełny ekran ---------- */
+const fsBtn=document.getElementById('fs'),root=document.documentElement;
+const FS_ON='<svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
+const FS_OFF='<svg viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>';
+const fsSupported=!!(root.requestFullscreen||root.webkitRequestFullscreen);
+const fsEl=()=>document.fullscreenElement||document.webkitFullscreenElement;
+function fsIcon(){fsBtn.innerHTML=fsEl()?FS_OFF:FS_ON}
+function toggleFS(){
+  if(!fsSupported)return;
+  try{
+    if(fsEl()){
+      try{screen.orientation&&screen.orientation.unlock&&screen.orientation.unlock()}catch(e){}
+      (document.exitFullscreen||document.webkitExitFullscreen).call(document);
+    }else{
+      const p=(root.requestFullscreen||root.webkitRequestFullscreen).call(root);
+      const lock=()=>{try{const r=screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape');r&&r.catch&&r.catch(()=>{})}catch(e){}};
+      p&&p.then?p.then(lock).catch(()=>{}):lock();
+    }
+  }catch(e){}
+}
+if(fsSupported){
+  fsBtn.style.display='flex';fsIcon();
+  fsBtn.addEventListener('click',e=>{e.preventDefault();toggleFS();fsBtn.blur()});
+  document.addEventListener('fullscreenchange',()=>{fsIcon();resize()});
+  document.addEventListener('webkitfullscreenchange',()=>{fsIcon();resize()});
+}
+
 /* ---------- sterowanie ---------- */
 const keys={};let tap=false,restartReq=false,enterReq=false,tapX=0,tapY=0,prevDir=0;
 addEventListener('keydown',e=>{
@@ -64,6 +95,7 @@ addEventListener('keydown',e=>{
   keys[e.code]=true;
   if(e.code==='KeyM')muted=!muted;
   if(e.code==='KeyR')restartReq=true;
+  if(e.code==='KeyF'&&!e.repeat)toggleFS();
   if(e.code==='Enter'&&!e.repeat)enterReq=true;
 });
 addEventListener('keyup',e=>keys[e.code]=false);
