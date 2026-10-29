@@ -491,7 +491,8 @@ function draw(){
       ctx.strokeStyle=sel?'#ffcf4a':'rgba(255,255,255,.5)';ctx.lineWidth=2;ctx.stroke();
       ctx.font='bold 22px system-ui,sans-serif';
       const fw=34,fh=22,gap=12,maxT=b.w-fw-gap-28;
-      const tw=Math.min(ctx.measureText(b.label).width,maxT),x0=b.x+(b.w-(fw+gap+tw))/2;
+      // niektóre przeglądarki na iOS zaniżają measureText – bierzemy bezpieczne minimum
+      const tw=Math.min(Math.max(ctx.measureText(b.label).width,b.label.length*12),maxT),x0=b.x+(b.w-(fw+gap+tw))/2;
       drawFlag(k,x0,b.y+(b.h-fh)/2,fw,fh);
       ctx.fillStyle=sel?'#2a1a10':'#fff';ctx.textAlign='left';
       ctx.fillText(b.label,x0+fw+gap,b.y+b.h/2+1,maxT);
